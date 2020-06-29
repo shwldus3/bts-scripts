@@ -1,0 +1,23 @@
+{
+  "name": "bts_scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shwldus3/bts_scripts.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shwldus3/bts_scripts/issues"
+  },
+  "homepage": "https://github.com/shwldus3/bts_scripts#readme",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "btoa": "^1.2.1"
+  }
+}
