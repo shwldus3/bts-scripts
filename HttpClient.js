@@ -1,22 +1,20 @@
-const { Authorization } = require("./Authorization");
-
 class HttpClient {
 
-    #accessToken
+    #headers
 
-    constructor() {
-        this.#accessToken = new Authorization().accessToken();
+    constructor(authorization) {
+        this.#headers = { Authorization: `${authorization.type} ${authorization.accessToken}` };
     }
 
     async post(url, params, data) {
-        if (!this.#accessToken) {
-            throw new Error('Invalid access token');
+        if (!this.#headers) {
+            throw new Error('Invalid headers');
         }
 
         try {
             const options = {
                 url,
-                headers: { Authorization: `Bearer ${this.#accessToken}` }
+                headers: this.#headers
             };
             if (params) {
                 options.params = params;
@@ -33,4 +31,4 @@ class HttpClient {
     }
 }
 
-this.HttpClient = HttpClient;
+module.exports.HttpClient = HttpClient;

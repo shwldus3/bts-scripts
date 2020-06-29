@@ -2,8 +2,8 @@ const axios = require('axios');
 const btoa = require('btoa');
 const url = require('url');
 
-const { HttpClient } = require('./HttpClient.js');
-const httpClient = new HttpClient();
+const HttpClient = require('./HttpClient');
+const Auth = require('./Auth');
 
 // const getAccessToken = async () => {
 //     try {
@@ -21,14 +21,23 @@ const httpClient = new HttpClient();
 //     }
 // }
 
-const getBtsAlbums = async () => {
+const getBtsArtistId = async () => {
     const url = 'https://api.spotify.com/v1/search';
-    console.log(request.post(url));
+    const params = {
+        "q": "BTS",
+        "type": "artist",
+        "limit": "5"
+    }
+    console.log(httpClient.post(url, params));
+    const data = httpClient.post(url, params);
+    return data;
 }
 
 const runScript = async () => {
-    const getBtsAlbums = await getBtsAlbums();
-    console.log(accessToken);
+    const auth = new Auth();
+    const httpClient = new HttpClient(auth.authorization);
+    const data = await getBtsArtistId();
+    console.log(data);
 }
 
 runScript();
