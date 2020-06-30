@@ -3,7 +3,7 @@ const btoa = require('btoa');
 const https = require('https');
 const url = require('url');
 
-class Auth {
+class SpotifyAuth {
 
     #authorization
 
@@ -26,9 +26,9 @@ class Auth {
 
     static async generate(clientId, clientSecret) {
         try {
-            const auth = new Auth(clientId, clientSecret);
+            const spotifyAuth = new SpotifyAuth(clientId, clientSecret);
 
-            const encodedClientInfo = btoa(`${auth.#clientId}:${auth.#clientSecret}`);
+            const encodedClientInfo = btoa(`${spotifyAuth.#clientId}:${spotifyAuth.#clientSecret}`);
             const options = {
                 url: 'https://accounts.spotify.com/api/token',
                 method: 'post',
@@ -37,7 +37,7 @@ class Auth {
                 httpsAgent: new https.Agent({ rejectUnauthorized: false })
             };
             const response = await axios(options);
-            auth.authorization = response.data;
+            spotifyAuth.authorization = response.data;
             console.log('Certification has been created');
 
             return auth;
@@ -47,4 +47,4 @@ class Auth {
     }
 }
 
-module.exports = Auth;
+module.exports = SpotifyAuth;

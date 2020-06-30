@@ -17,7 +17,9 @@
   },
   "homepage": "https://github.com/shwldus3/bts_scripts#readme",
   "dependencies": {
+    "@google-cloud/local-auth": "^1.0.0",
     "axios": "^0.19.2",
-    "btoa": "^1.2.1"
+    "btoa": "^1.2.1",
+    "googleapis": "^52.1.0"
   }
 }
