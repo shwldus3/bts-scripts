@@ -11,7 +11,7 @@ class SpotifyAuth {
 
     #clientSecret
 
-    constructor(clientId = '97fab324741d438dbac805e98846fdc5', clientSecret = '65bbaa85a90349b7b82f6d2672719bca') {
+    constructor(clientId, clientSecret) {
         this.#clientId = clientId;
         this.#clientSecret = clientSecret;
     }
