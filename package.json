@@ -20,6 +20,8 @@
     "@google-cloud/local-auth": "^1.0.0",
     "axios": "^0.19.2",
     "btoa": "^1.2.1",
-    "googleapis": "^52.1.0"
+    "googleapis": "^52.1.0",
+    "lodash": "^4.17.19",
+    "pg": "^8.3.0"
   }
 }

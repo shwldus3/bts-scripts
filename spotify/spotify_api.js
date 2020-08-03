@@ -1,12 +1,9 @@
 'use strict'
 
-const axios = require('axios');
 const btoa = require('btoa');
-const https = require('https');
-const url = require('url');
 
-const HttpClient = require('./HttpClient');
-const Auth = require('./Auth');
+const HttpClient = require('../http/HttpClient');
+const Auth = require('./SpotifyAuth');
 
 const getBtsArtistId = async () => {
     try {

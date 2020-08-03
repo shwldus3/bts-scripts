@@ -3,24 +3,24 @@ const https = require('https');
 
 class HttpClient {
 
-    #headers
+    #authorization
 
-    constructor(authorization) {
-        this.#headers = { Authorization: `${authorization.token_type} ${authorization.access_token}` };
+    constructor(authorization = null) {
+        if (!!authorization) {
+            this.#authorization = { Authorization: `${authorization.token_type} ${authorization.access_token}` };
+        }
     }
 
     async post(url, body) {
-        if (!this.#headers) {
-            throw new Error('Invalid headers');
-        }
-
         try {
             const options = {
                 url,
-                method: 'post',
-                headers: this.#headers,
-                httpsAgent: new https.Agent({ rejectUnauthorized: false })
+                method: 'post'
             };
+            if (!!this.#authorization) {
+                options.headers = Object.assign({}, this.#authorization);
+                options.httpsAgent = new https.Agent({ rejectUnauthorized: false })
+            }
             if (body) {
                 options.body = body;
             }
@@ -31,18 +31,16 @@ class HttpClient {
         }
     }
 
-    async get(url, params) {
-        if (!this.#headers) {
-            throw new Error('Invalid headers');
-        }
-
+    async get(url, params = null) {
         try {
             const options = {
                 url,
-                method: 'get',
-                headers: this.#headers,
-                httpsAgent: new https.Agent({ rejectUnauthorized: false })
+                method: 'get'
             };
+            if (!!this.#authorization) {
+                options.headers = Object.assign({}, this.#authorization);
+                options.httpsAgent = new https.Agent({ rejectUnauthorized: false })
+            }
             if (params) {
                 options.params = params;
             }
