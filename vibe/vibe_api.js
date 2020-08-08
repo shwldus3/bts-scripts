@@ -46,7 +46,7 @@ exports.getAlbumDetail = async (albumId) => {
 
 const _saveFileFortracks = () => {
     const data = getBtsTracks();
-    const filePath = './json/bts_tracks.json';
+    const filePath = `${__dirname}/json/bts_tracks.json`;
     try {
         fs.writeFile(filePath, JSON.stringify(jsonData));
         console.log(`write file >>> ${filePath}`);

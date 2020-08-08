@@ -1,4 +1,8 @@
 node_modules/
+csv/
+json/
+result/
 package-lock.json
 oauth2.keys.json
 *.json
+*.csv

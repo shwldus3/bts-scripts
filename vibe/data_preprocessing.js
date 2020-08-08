@@ -1,5 +1,6 @@
 const fs = require('fs');
 const _ = require('lodash');
+const bts_datasource = require('./bts_datasource');
 
 // 1. json 파일 읽기 [완료]
 // 2. filtering 전처리
@@ -8,8 +9,9 @@ const _ = require('lodash');
 // 4. 필요한 트랙 정보만 추출 (앨범ID 매핑, 중복 제거)
 
 const getTracks = exports.getTracks = () => {
+    console.log(__dirname);
     try {
-        const json = fs.readFileSync('./json/bts_tracks.json', 'utf-8');
+        const json = fs.readFileSync(`${__dirname}/json/bts_tracks.json`, 'utf-8');
         const data = JSON.parse(json);
         return data.response.result.tracks;
     } catch (err) {
@@ -19,14 +21,24 @@ const getTracks = exports.getTracks = () => {
 
 const getTrackDetails = exports.getTrackDetails = () => {
     try {
-        const json = fs.readFileSync('./json/track_details.json', 'utf-8');
+        const json = fs.readFileSync(`${__dirname}/json/track_details.json`, 'utf-8');
         return JSON.parse(json).data;
     } catch (err) {
         throw err;
     }
 }
+const notFilteredTracks = exports.notFilteredTracks = (tracks) => {
+    return tracks.map(t => {
+        return {
+            trackId: t.trackId,
+            trackTitle: t.trackTitle,
+            albumId: t.album.albumId,
+            albumTitle: t.album.albumTitle
+        };
+    })
+}
 
-const filterTracks = exports.filterTracks = (tracks) => {
+const filteredTracks = exports.filteredTracks = (tracks) => {
     if (!tracks) {
         throw new Error('Invalid tracks')
     }
@@ -69,6 +81,127 @@ const filterTracks = exports.filterTracks = (tracks) => {
     }, []);
 }
 
+const filterDupTitle = (tracks) => {
+    return tracks.reduce((prev, cur) => {
+        const isFiltered = prev.find(t => {
+            return t.track_title === cur.track_title
+        });
+        if (!!isFiltered) {
+            return prev;
+        } else {
+            prev.push(cur);
+            return prev;
+        }
+    }, []);
+}
+
+/*
+    track_title로 타류 분류
+*/
+const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
+    if (!tracks) {
+        return;
+    }
+    const filteredTracks = filterDupTitle(tracks);
+
+    const jpVerTracks = filteredTracks.filter(t => {
+        const title = t.track_title;
+        return title.includes('(Japanese Ver')
+            || title.includes('-Japanese Version-')
+            || title.includes('-Japanese ver.-');
+    });
+
+    const mixTracks = filteredTracks.filter(t => {
+        const title = t.track_title;
+        return (title.includes('mix)')
+            || title.includes('prologue mix')
+            || title.includes('Mix)')
+            || title.includes('remix')
+            || title.includes('(Mo-Blue-Mix)')
+            || title.includes('Remix'))
+            && !title.includes('Japanese Version') && !title.includes('(Feat. Lauv)');
+    });
+
+    const filteredTracks2 = filteredTracks.filter(t => {
+        let isJpVer = false;
+        let isMix = false;
+        jpVerTracks.forEach(j => {
+            if (j.track_title === t.track_title) {
+                isJpVer = true;
+            }
+        });
+        mixTracks.forEach(m => {
+            if (m.track_title === t.track_title) {
+                isMix = true;
+            }
+        });
+        return !(isJpVer || isMix);
+    })
+    const featTracks = filteredTracks2.filter(t => {
+        const title = t.track_title;
+        return title.includes('Feat') &&
+            (!title.includes('BTS Cypher PT.3 : KILLER') || !title.includes('Intro : 2 Cool 4 Skool'));
+    });
+
+    const fullEditionTracks = filteredTracks2.filter(t => {
+        const title = t.track_title;
+        return title.includes('Full Length Edition')
+            || title.includes('full length edition');
+    })
+
+    const newTracks = filteredTracks.filter(t => {
+        let isJpVer = false;
+        let isMix = false;
+        let isFeat = false;
+        let isFullVer = false;
+        jpVerTracks.forEach(j => {
+            if (j.track_title === t.track_title) {
+                isJpVer = true;
+            }
+        });
+        mixTracks.forEach(m => {
+            if (m.track_title === t.track_title) {
+                isMix = true;
+            }
+        });
+        featTracks.forEach(f => {
+            if (f.track_title === t.track_title) {
+                isFeat = true;
+            }
+        });
+        fullEditionTracks.forEach(f => {
+            if (f.track_title === t.track_title) {
+                isFullVer = true;
+            }
+        })
+        return !(isJpVer || isMix || isFeat || isFullVer);
+    })
+
+
+    return [
+        {
+            name: '일본 버전',
+            value: jpVerTracks
+        },
+        {
+            name: '리믹스',
+            value: mixTracks
+        },
+        {
+            name: '피쳐링(Feat.)',
+            value: featTracks
+        },
+        {
+            name: '풀 버전(Full Length Edition)',
+            value: fullEditionTracks
+        },
+        {
+            name: '신곡',
+            value: newTracks
+        },
+    ]
+}
+
 const groupedByAlbum = exports.groupedByAlbum = (tracks) => {
     if (!tracks) {
         throw new Error('Invalid tracks')
@@ -90,7 +223,7 @@ const groupedByAlbum = exports.groupedByAlbum = (tracks) => {
 }
 
 const writeTracks = exports.writeTracks = (data) => {
-    const filePath = './json/tracks.json';
+    const filePath = `${__dirname}/json/tracks.json`;
     const tracks = data.map(t => { return { trackId: t.trackId, trackTitle: t.trackTitle, albumId: t.albumId }; });
 
     try {
@@ -101,7 +234,7 @@ const writeTracks = exports.writeTracks = (data) => {
 }
 
 const writeAlbums = exports.writeAlbums = (data) => {
-    const filePath = './json/albums.json';
+    const filePath = `${__dirname}/json/albums.json`;
     const groupedTracks = groupedByAlbum(data);
     const albums = Object.values(groupedTracks);
 
@@ -195,10 +328,13 @@ const getMembers = exports.getMembers = () => {
 
 const _runTest = () => {
     try {
+        const tracks = getTrackDetails();
         const members = getMembers();
+        // const writers = getWriters(tracks, members);
+        const composers = getComposers(tracks, members);
 
         try {
-            fs.writeFileSync('./json/members.json', JSON.stringify({ data: members }));
+            fs.writeFileSync(`${__dirname}/json/composers.json`, JSON.stringify({ data: composers }));
         } catch (err) {
             if (err) return console.log(err);
         }
@@ -206,3 +342,5 @@ const _runTest = () => {
         console.error(err);
     }
 }
+
+_runTest();
