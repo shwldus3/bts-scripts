@@ -1,8 +1,8 @@
-'use strict'
+'use strict';
 
 const btoa = require('btoa');
 
-const HttpClient = require('../http/HttpClient');
+const HttpClient = require('./HttpClient');
 const Auth = require('./SpotifyAuth');
 
 const getBtsArtistId = async () => {

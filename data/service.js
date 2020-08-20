@@ -3,11 +3,11 @@
 const fs = require('fs');
 const query = require('./query');
 const preprocessing = require('./preprocessing');
-const vibe_api = require('./vibe_api');
+const vibeRequest = require('../http/vibeRequest');
 const constant = require('./constant');
 
 const getTracksRawData = async (id, artist, count) => {
-    const data = await vibe_api.getTracks(id, count);
+    const data = await vibeRequest.getTracks(id, count);
     try {
         const filePath = `${__dirname}/json/${artist}/tracks.json`;
         fs.writeFileSync(filePath, JSON.stringify(data));
@@ -22,7 +22,7 @@ const updateAlbumReleaseDate = exports.updateAlbum = async (id) => {
     const errResult = [];
     for (const d of albums) {
         try {
-            const album = await vibe_api.getAlbumDetail(d.album_id);
+            const album = await vibeRequest.getAlbumDetail(d.album_id);
             await query.updateReleaseDate(album);
         } catch (err) {
             console.log(err);
@@ -40,7 +40,7 @@ const updateTrackLyric = exports.updateTrack = async (id, artist) => {
     const trackDetails = [];
     for (const d of tracks) {
         try {
-            const track = await vibe_api.getTrackDetail(d.track_id);
+            const track = await vibeRequest.getTrackDetail(d.track_id);
             trackDetails.push(track);
             await query.updatelyric(track);
         } catch (err) {

@@ -1,3 +1,5 @@
+'use strict';
+
 const axios = require('axios');
 const btoa = require('btoa');
 const https = require('https');

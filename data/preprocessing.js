@@ -1,20 +1,4 @@
-const fs = require('fs');
-const _ = require('lodash');
-const bts_datasource = require('./query');
-
-const transformTracks = exports.transformTracks = (artist) => {
-    const json = fs.readFileSync(`${__dirname}/json/${artist}/tracks.json`, 'utf-8');
-    const data = JSON.parse(json).response.result.tracks;
-    const tracks = data.map(t => { 
-        return { 
-            trackId: t.trackId, 
-            trackTitle: t.trackTitle, 
-            albumId: t.album.albumId, 
-            albumTitle: t.album.albumTitle 
-        }; 
-    });
-    return tracks;
-}
+'use strict';
 
 const filterDupTitle = (tracks) => {
     return tracks.reduce((prev, cur) => {
@@ -28,7 +12,7 @@ const filterDupTitle = (tracks) => {
             return prev;
         }
     }, []);
-}
+};
 
 /*
     trackTitle로  분류 트랙 유형 분류
@@ -72,7 +56,7 @@ const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
             }
         });
         return !(isJpVer || isMix);
-    })
+    });
     const featTracks = filteredTracks2.filter(t => {
         const title = t.trackTitle;
         return title.includes('Feat') &&
@@ -83,7 +67,7 @@ const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
         const title = t.trackTitle;
         return title.includes('Full Length Edition')
             || title.includes('full length edition');
-    })
+    });
 
     const newTracks = filteredTracks.filter(t => {
         let isJpVer = false;
@@ -109,9 +93,9 @@ const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
             if (f.trackTitle === t.trackTitle) {
                 isFullVer = true;
             }
-        })
+        });
         return !(isJpVer || isMix || isFeat || isFullVer);
-    })
+    });
 
 
     return [
@@ -136,7 +120,7 @@ const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
             value: newTracks.map(t => { t.type = 'N'; return t; })
         },
     ]
-}
+};
 
 const groupedByAlbum = exports.groupedByAlbum = (tracks) => {
     if (!tracks) {
@@ -156,7 +140,7 @@ const groupedByAlbum = exports.groupedByAlbum = (tracks) => {
     });
 
     return groupedByAlbum;
-}
+};
 
 const getWriters = exports.getWriters = (data, members) => {
     const writers = [];
@@ -175,7 +159,7 @@ const getWriters = exports.getWriters = (data, members) => {
         })
     });
     return writers;
-}
+};
 
 const getComposers = exports.getComposers = (data, members) => {
     const composers = [];
@@ -203,7 +187,7 @@ const getComposers = exports.getComposers = (data, members) => {
         })
     });
     return composers;
-}
+};
 
 const _runTest = () => {
     try {
@@ -220,4 +204,4 @@ const _runTest = () => {
     } catch (err) {
         console.error(err);
     }
-}
+};

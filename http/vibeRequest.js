@@ -1,6 +1,6 @@
-'use strict'
+'use strict';
 
-const HttpClient = require('../http/HttpClient');
+const HttpClient = require('./HttpClient');
 const fs = require('fs');
 
 const getTracks = exports.getTracks = async (artistId, count = 100) => {

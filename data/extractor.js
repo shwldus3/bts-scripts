@@ -1,20 +1,23 @@
+'use strict';
+
 const fs = require('fs');
-const bts_datasource = require('./query');
-const data_preprocessing = require('./preprocessing');
+const _ = require('lodash');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const _ = require('lodash')
+
+const query = require('./query');
+const preprocessing = require('./preprocessing');
 
 const albumList = async () => {
-    const data = await bts_datasource.selectAlbums();
+    const data = await query.selectAlbums();
     console.log(data);
-}
+};
 
 const filterNewTrack = (tracks) => {
-    return data_preprocessing.groupedTrackByType(tracks).filter(t => t.name === '신곡')[0].value
-}
+    return preprocessing.groupedTrackByType(tracks).filter(t => t.name === '신곡')[0].value
+};
 
 const groupedTrack = async () => {
-    const groupedTrack = await bts_datasource.selectGroupedType();
+    const groupedTrack = await query.selectGroupedType();
     return groupedTrack.map(t => {
         if (t.type === 'N') {
             t.name = '신곡';
@@ -28,11 +31,11 @@ const groupedTrack = async () => {
             t.name = '리믹스';
         }
     })
-}
+};
 
 const groupedTracksByYear = async () => {
-    const tracks = await bts_datasource.selectTrackWithReleaseDate();
-    const newTracks = data_preprocessing.groupedTrackByType(tracks).filter(t => t.name === '신곡')[0].value;
+    const tracks = await query.selectTrackWithReleaseDate();
+    const newTracks = preprocessing.groupedTrackByType(tracks).filter(t => t.name === '신곡')[0].value;
 
     const groupedByReleaseDate = _.countBy(newTracks, 'release_date');
     const result = [];
@@ -46,10 +49,10 @@ const groupedTracksByYear = async () => {
         }
     }
     return result;
-}
+};
 
 const participateCompositionRatio = async () => {
-    const results = await bts_datasource.selectTrackWithMemberComposer();
+    const results = await query.selectTrackWithMemberComposer();
     const tracksWithMember = results[0];
     return [{
         name: '멤버 작곡 참여 비율',
@@ -61,7 +64,7 @@ const participateCompositionRatio = async () => {
 };
 
 const participateWriterRatio = async () => {
-    const results = await bts_datasource.selectTrackWithMemberWriter();
+    const results = await query.selectTrackWithMemberWriter();
     const tracksWithMember = results[0];
     return [{
         name: '멤버 작사 참여 비율',
@@ -73,31 +76,31 @@ const participateWriterRatio = async () => {
 };
 
 const groupedParticipateByReleaseDate = async () => {
-    const results = await bts_datasource.countParticipateByReleaseDate();
+    const results = await query.countParticipateByReleaseDate();
     return results;
-}
+};
 
 const groupedParticipateByReleaseDateAndMember = async () => {
-    const results = await bts_datasource.countParticipateByReleaseDateAndMember();
+    const results = await query.countParticipateByReleaseDateAndMember();
     return results;
-}
+};
 
 const groupedParticipateByMember = async () => {
-    const results = await bts_datasource.rateParticipateByMember();
+    const results = await query.rateParticipateByMember();
     return results;
-}
+};
 
 const getTop10Keywords = async () => {
-    const data = await bts_datasource.selectTop10Keywords();
+    const data = await query.selectTop10Keywords();
     return data.map((d, idx) => {
         d.id = idx + 1;
         d.value = Number.parseInt(d.value);
         return d;
     });
-}
+};
 
 const getKeywordsByReleaseDate = async () => {
-    const data = await bts_datasource.selectKeywordsByReleaseDate();
+    const data = await query.selectKeywordsByReleaseDate();
     const maxCnts = 30 
     let cnt = 0;
     let releaseDate = '';
@@ -119,13 +122,13 @@ const getKeywordsByReleaseDate = async () => {
         }
 
         return;
-    })
+    });
 
     return results;
-}
+};
 
 const getKeywords = async () => {
-    const data = await bts_datasource.selectKeywords();
+    const data = await query.selectKeywords();
     const filteredData = data.filter(r => {
         let word = r.lyric_word;
         
@@ -152,9 +155,9 @@ const getKeywords = async () => {
         const word = d.lyric_word;
        
         str += `${word} `;
-    })
+    });
     return str;
-}
+};
 
 const writeCsv = async (data, keys, csvFileName) => {
     try {
@@ -163,7 +166,7 @@ const writeCsv = async (data, keys, csvFileName) => {
             header.push({
                 id: key, title: key
             })
-        })
+        });
         const csvWriter = createCsvWriter({
             path: `vibe/csv/${csvFileName}.csv`,
             header
@@ -172,7 +175,7 @@ const writeCsv = async (data, keys, csvFileName) => {
     } catch (err) {
         throw new Error(err);
     }
-}
+};
 
 const writeFile = (data, fileName) => {
     const filePath = `${__dirname}/${fileName}`;
@@ -182,7 +185,7 @@ const writeFile = (data, fileName) => {
     } catch (err) {
         throw err;
     }
-}
+};
 
 const _runTest = async () => {
     try {
@@ -193,6 +196,6 @@ const _runTest = async () => {
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 _runTest();
