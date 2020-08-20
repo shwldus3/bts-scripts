@@ -44,11 +44,11 @@ exports.updateReleaseDate = async (albumInfo) => {
 };
 
 exports.insertAlbum = async (albumInfo) => {
-    const { albumId, albumTitle } = albumInfo;
-    const data = [ albumId, albumTitle ];
+    const { albumId, albumTitle, artist_id = null } = albumInfo;
+    const data = [ albumId, albumTitle, artist_id ];
 
     try {
-        const results = await pool.query('INSERT INTO album (album_id, album_title) VALUES ($1, $2)', data);
+        const results = await pool.query('INSERT INTO album (album_id, album_title, artist_id) VALUES ($1, $2, $3)', data);
         return results;
     } catch (err) {
         throw err
@@ -56,11 +56,11 @@ exports.insertAlbum = async (albumInfo) => {
 };
 
 exports.insertTrack = async (trackInfo) => {
-    const { trackId, trackTitle, lyric, albumId } = trackInfo;
-    const data = [ trackId, trackTitle, lyric, albumId ];
+    const { trackId, trackTitle, lyric = null, albumId, type = 'D' } = trackInfo;
+    const data = [ trackId, trackTitle, lyric, albumId, type ];
 
     try {
-        const results = await pool.query('INSERT INTO track (track_id, track_title, lyric, album_id) VALUES ($1, $2, $3, $4)', data);
+        const results = await pool.query('INSERT INTO track (track_id, track_title, lyric, album_id, type) VALUES ($1, $2, $3, $4, $5)', data);
         return results;
     } catch (err) {
         throw err
@@ -92,11 +92,11 @@ exports.insertComposer = async (composerInfo) => {
 };
 
 exports.insertMember = async (memberInfo) => {
-    const { memberId, memberName } = memberInfo;
-    const data = [ memberId, memberName ];
+    const { memberId, memberName, artistId = null } = memberInfo;
+    const data = [ memberId, memberName, artistId];
 
     try {
-        const results = await pool.query('INSERT INTO member (member_id, member_name) VALUES ($1, $2)', data);
+        const results = await pool.query('INSERT INTO member (member_id, member_name, artist_id) VALUES ($1, $2, $3)', data);
         return results;
     } catch (err) {
         throw err
@@ -115,7 +115,16 @@ exports.selectMember = async (memberInfo) => {
     }
 }
 
-exports.selectAlbums = async () => {
+exports.selectAlbumsByArtistId = async (id) => {
+    try {
+        const results = await pool.query('SELECT album_id FROM album WHERE artist_id = $1', [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+}
+
+exports.selectAlbumsReleaseDate = async () => {
     try {
         const results = await pool.query('SELECT album_title, to_char("release_date", \'YYYY-MM-DD\') as release_date FROM album');
         return results.rows;
@@ -142,9 +151,9 @@ exports.selectTrackTitle = async () => {
     }
 }
 
-exports.selectNewTracks = async () => {
+exports.selectNewTracks = async (id) => {
     try {
-        const results = await pool.query('SELECT * FROM track WHERE type = \'N\'');
+        const results = await pool.query('SELECT * FROM track as t, album as a where t.type = \'N\' AND t.album_id = a.album_id and a.artist_id = $1', [ id ]);
         return results.rows;
     } catch (err) {
         throw err
@@ -230,6 +239,7 @@ exports.countParticipateByReleaseDate = async () => {
                     SELECT track_id 
                     FROM composer
                 ) AS p1 
+                GROUP BY p1.track_id
             ) AS p ON t.track_id = p.track_id
             WHERE t.type = 'N') t
         GROUP BY t.release_date
@@ -263,6 +273,7 @@ exports.countParticipateByReleaseDateAndMember = async () => {
                     SELECT * 
                     FROM composer
                 ) AS p1 
+                GROUP BY p1.track_id, p1.member_id
             ) AS p ON t.track_id = p.track_id
             JOIN member AS m ON p.member_id = m.member_id
             WHERE t.type = 'N') t
@@ -270,6 +281,158 @@ exports.countParticipateByReleaseDateAndMember = async () => {
         ORDER BY t.release_date, t.member_name
         `
 
+        const results = await pool.query(sql);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+}
+
+exports.rateParticipateByMember = async () => {
+    try {
+        const sql = `
+        SELECT t.member_name AS member
+            , CAST(COUNT(*) AS DOUBLE PRECISION) / 160 * 100 AS value 
+        FROM (
+            SELECT m.member_name
+            FROM track AS t
+            JOIN (
+                SELECT p1.track_id, p1.member_id
+                FROM (
+                    SELECT *
+                    FROM writer
+                UNION
+                    SELECT * 
+                    FROM composer
+                ) AS p1 
+                GROUP BY p1.track_id, p1.member_id
+            ) AS p ON t.track_id = p.track_id
+            JOIN member AS m ON p.member_id = m.member_id
+            WHERE t.type = 'N') t
+        GROUP BY t.member_name
+        ORDER BY t.member_name
+        `
+
+        const results = await pool.query(sql);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+}
+
+exports.selectKeywords = async () => {
+    try {
+        const sql = `
+        SELECT lyric_word
+        FROM lyric_morpheme
+        WHERE type IN ('NNP', 'NNG', 'SN', 'IC')
+             OR (type IN ('MAG', 'XR', 'SL') AND LENGTH(lyric_word) >= 2)
+             OR (type IN ('VA') AND LENGTH(lyric_word) >= 3)
+        `
+        // SELECT lyric_word
+        // FROM lyric_morpheme
+        // WHERE type IN ('NNP', 'NNG', 'NP', 'SN', 'IC')
+        //     OR (type IN ('MAG', 'XR', 'SL') AND LENGTH(lyric_word) >= 2)
+        //     OR (type IN ('VA') AND LENGTH(lyric_word) >= 3)
+        // `
+        // const sql = `
+        // SELECT track_id, lyric_word, type
+        // FROM lyric_morpheme
+        // `
+        const results = await pool.query(sql);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+}
+
+exports.selectTop10Keywords = async () => {
+    try {
+        const sql = `
+        SELECT T.word AS data
+            , count(*) AS value
+        FROM (
+            SELECT LOWER(l.lyric_word) AS word
+                , l.type
+            FROM lyric_morpheme as l
+            WHERE 
+                (
+                    l.type IN ('NNP', 'NNG', 'SN')
+                        OR (l.type IN ('XR', 'SL') AND LENGTH(lyric_word) >= 2)
+                        OR (l.type IN ('VA') AND LENGTH(lyric_word) >= 3)
+                )
+                AND (LENGTH(l.lyric_word) >= 2 OR LENGTH(l.lyric_word) = 1
+                    AND l.lyric_word IN ('말','꿈','날','눈','랩','끝','숨','밤','빛','앞','뷔','형'
+                    ,'삶','겁','흥','춤','꽃','별','땀','법','밖','힘','널','죄','욕','총','정'
+                    ,'밥','칼','낮','금','숲','봄','팬','쫌','빵','핳','헤','글','ㅋ','ㅇ','슛'
+                    ,'꿀','뜻','몫','벽','볕','빚','술','힣','짝','짱','넌'
+                    , '뭐', '뭣', '왜', '쉿'
+                    , '니', '내', '나', '너')
+                    )
+                AND l.lyric_word !~ '[一-龠]+|[ぁ-ゔ]+|[ァ-ヴー]+|[a-zA-Z0-9]+|[ａ-ｚＡ-Ｚ０-９]+[々〆〤]+/u'
+        ) AS T
+        GROUP BY T.word
+        ORDER BY T.count DESC
+        LIMIT 10
+        `
+        const results = await pool.query(sql);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+}
+
+exports.selectLyrics = async () => {
+    const sql = `
+        select REGEXP_REPLACE(lyric, '[[:alpha:]]|!|,|’|\(|\)|''', '','g') as korean_lyric
+            , REGEXP_REPLACE(lyric, '[가-힣]|!|,|’|\(|\)|''', '', 'g') as english_lyric
+            , track_id 
+        from track where type = 'N' and lyric is not null limit 1
+    `
+    try {
+        const results = await pool.query(sql);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+}
+
+
+exports.selectKeywordsByReleaseDate = async () => {
+    try {
+        const sql = `
+        SELECT T.release_date AS date
+            , T.word AS name
+            , release_date AS category
+            , count(*) AS value
+        FROM (
+            SELECT LOWER(l.lyric_word) AS word
+                , l.type
+                , TO_CHAR(a.release_date, 'YYYY-MM-DD') AS release_date
+            FROM album as a
+                , track as t
+                , lyric_morpheme as l
+            WHERE a.album_id = t.album_id
+                AND t.track_id = l.track_id
+                AND (
+                    l.type IN ('NNP', 'NNG', 'SN')
+                        OR (l.type IN ('XR', 'SL') AND LENGTH(lyric_word) >= 2)
+                        OR (l.type IN ('VA') AND LENGTH(lyric_word) >= 3)
+                    )
+                AND (LENGTH(l.lyric_word) >= 2 OR LENGTH(l.lyric_word) = 1
+                    AND l.lyric_word IN ('말','꿈','날','눈','랩','끝','숨','밤','빛','앞','뷔','형'
+                    ,'삶','겁','흥','춤','꽃','별','땀','법','밖','힘','널','죄','욕','총','정'
+                    ,'밥','칼','낮','금','숲','봄','팬','쫌','빵','핳','헤','글','ㅋ','ㅇ','슛'
+                    ,'꿀','뜻','몫','벽','볕','빚','술','힣','짝','짱','넌'
+                    , '뭐', '뭣', '왜', '쉿'
+                    , '니', '내')
+                    )
+                AND l.lyric_word NOT IN ('랩몬스터', '제이홉', '정호석', '지민', '슈가', '민윤기', '정국', '석진', '뷔', '김남준', '남준', '태형', '호석', '윤기')
+                AND l.lyric_word !~ '[一-龠]+|[ぁ-ゔ]+|[ァ-ヴー]+|[a-zA-Z0-9]+|[ａ-ｚＡ-Ｚ０-９]+[々〆〤]+/u'
+        ) AS T
+        GROUP BY T.release_date, T.word
+        ORDER BY T.release_date, T.count DESC
+        `
         const results = await pool.query(sql);
         return results.rows;
     } catch (err) {

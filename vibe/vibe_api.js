@@ -3,14 +3,13 @@
 const HttpClient = require('../http/HttpClient');
 const fs = require('fs');
 
-exports.getBtsTracks = async () => {
-    const artistId = 143179;
+const getTracks = exports.getTracks = async (artistId, count = 100) => {
     try {
         const httpClient = new HttpClient();
         const url = `https://apis.naver.com/vibeWeb/musicapiweb/v1/artist/${artistId}/tracks`;
         const params = {
             "start": "1",
-            "display": "300",
+            "display": count,
             "sort": "popular"
         };
         return await httpClient.get(url, params);
@@ -19,7 +18,7 @@ exports.getBtsTracks = async () => {
     }
 }
 
-exports.getTrackDetail = async (trackId) => {
+const getTrackDetail = exports.getTrackDetail = async (trackId) => {
     try {
         const httpClient = new HttpClient();
         const url = `https://apis.naver.com/vibeWeb/musicapiweb/track/${trackId}/info`;
@@ -30,7 +29,7 @@ exports.getTrackDetail = async (trackId) => {
     }
 }
 
-exports.getAlbumDetail = async (albumId) => {
+const getAlbumDetail = exports.getAlbumDetail = async (albumId) => {
     try {
         const httpClient = new HttpClient();
         const url = `https://apis.naver.com/vibeWeb/musicapiweb/vibe/v1/album/${albumId}`;
@@ -44,16 +43,18 @@ exports.getAlbumDetail = async (albumId) => {
     }
 }
 
-const _saveFileFortracks = () => {
-    const data = getBtsTracks();
-    const filePath = `${__dirname}/json/bts_tracks.json`;
+const _saveFileFortracks = async () => {
+    const data = await getTracks();
+    const filePath = `${__dirname}/json/exo/tracks.json`;
+    console.log(filePath);
     try {
-        fs.writeFile(filePath, JSON.stringify(jsonData));
+        fs.writeFileSync(filePath, JSON.stringify(data));
         console.log(`write file >>> ${filePath}`);
     } catch(err) {
         if (err) return console.log(err);
     }
 }
+
 
 
 const _runTest = async () => {
