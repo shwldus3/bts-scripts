@@ -9,7 +9,7 @@ const getTracks = exports.getTracks = async (artistId, count = 100) => {
         const url = `https://apis.naver.com/vibeWeb/musicapiweb/v1/artist/${artistId}/tracks`;
         const params = {
             "start": "1",
-            "display": count,
+            "display": count + "",
             "sort": "popular"
         };
         return await httpClient.get(url, params);
@@ -38,6 +38,20 @@ const getAlbumDetail = exports.getAlbumDetail = async (albumId) => {
         }
         const res = await httpClient.get(url, param);
         return res.response.result.album;
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+const getAlbumTracks = exports.getAlbumTracks = async (albumId, count = 100) => {
+    try {
+        const httpClient = new HttpClient();
+        const url = `https://apis.naver.com/vibeWeb/musicapiweb/album/${albumId}/tracks`;
+        const params = {
+            "start": "1",
+            "display": count
+        };
+        return await httpClient.get(url, params);
     } catch(e) {
         console.error(e);
     }

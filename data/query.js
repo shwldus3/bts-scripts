@@ -14,8 +14,7 @@ exports.updatelyric = async (trackInfo) => {
     const data = [ lyric, trackId ];
 
     try {
-        const results = await pool.query('UPDATE track SET lyric = $1 WHERE track_id = $2', data);
-        return results;
+        return await pool.query('UPDATE track SET lyric = $1 WHERE track_id = $2', data);
     } catch (err) {
         throw err
     }
@@ -26,8 +25,7 @@ exports.updateType = async (trackInfo) => {
     const data = [ type, track_id ];
 
     try {
-        const results = await pool.query('UPDATE track SET type = $1 WHERE track_id = $2', data);
-        return results;
+        return await pool.query('UPDATE track SET type = $1 WHERE track_id = $2', data);
     } catch (err) {
         throw err
     }
@@ -38,8 +36,7 @@ exports.updateReleaseDate = async (albumInfo) => {
     const data = [ releaseDate, albumId ];
 
     try {
-        const results = await pool.query('UPDATE album SET release_date = to_date($1, \'YYYY.MM.DD\') WHERE album_id = $2', data);
-        return results;
+        return await pool.query('UPDATE album SET release_date = to_date($1, \'YYYY.MM.DD\') WHERE album_id = $2', data);
     } catch (err) {
         throw err
     }
@@ -50,8 +47,7 @@ exports.insertAlbum = async (albumInfo) => {
     const data = [ albumId, albumTitle, artist_id ];
 
     try {
-        const results = await pool.query('INSERT INTO album (album_id, album_title, artist_id) VALUES ($1, $2, $3)', data);
-        return results;
+        return await pool.query('INSERT INTO album (album_id, album_title, artist_id) VALUES ($1, $2, $3)', data);
     } catch (err) {
         throw err
     }
@@ -62,20 +58,18 @@ exports.insertTrack = async (trackInfo) => {
     const data = [ trackId, trackTitle, lyric, albumId, type ];
 
     try {
-        const results = await pool.query('INSERT INTO track (track_id, track_title, lyric, album_id, type) VALUES ($1, $2, $3, $4, $5)', data);
-        return results;
+        return await pool.query('INSERT INTO track (track_id, track_title, lyric, album_id, type) VALUES ($1, $2, $3, $4, $5)', data);
     } catch (err) {
         throw err
     }
-}
+};
 
 exports.insertWriter = async (writerInfo) => {
     const { trackId, memberId } = writerInfo;
     const data = [ trackId, memberId ];
 
     try {
-        const results = await pool.query('INSERT INTO writer (track_id, member_id) VALUES ($1, $2)', data);
-        return results;
+        return await pool.query('INSERT INTO writer (track_id, member_id) VALUES ($1, $2)', data);
     } catch (err) {
         throw err
     }
@@ -86,8 +80,7 @@ exports.insertComposer = async (composerInfo) => {
     const data = [ trackId, memberId ];
 
     try {
-        const results = await pool.query('INSERT INTO composer (track_id, member_id) VALUES ($1, $2)', data);
-        return results;
+        return await pool.query('INSERT INTO composer (track_id, member_id) VALUES ($1, $2)', data);
     } catch (err) {
         throw err
     }
@@ -98,12 +91,11 @@ exports.insertMember = async (memberInfo) => {
     const data = [ memberId, memberName, artistId];
 
     try {
-        const results = await pool.query('INSERT INTO member (member_id, member_name, artist_id) VALUES ($1, $2, $3)', data);
-        return results;
+        return await pool.query('INSERT INTO member (member_id, member_name, artist_id) VALUES ($1, $2, $3)', data);
     } catch (err) {
         throw err
     }
-}
+};
 
 exports.selectMember = async (memberInfo) => {
     const { memberId } = memberInfo;
@@ -115,7 +107,7 @@ exports.selectMember = async (memberInfo) => {
     } catch (err) {
         throw err
     }
-}
+};
 
 exports.selectAlbumsByArtistId = async (id) => {
     try {
@@ -124,16 +116,16 @@ exports.selectAlbumsByArtistId = async (id) => {
     } catch (err) {
         throw err
     }
-}
+};
 
-exports.selectAlbumsReleaseDate = async () => {
+exports.selectAlbumsReleaseDate = async (id) => {
     try {
-        const results = await pool.query('SELECT album_title, to_char("release_date", \'YYYY-MM-DD\') as release_date FROM album');
+        const results = await pool.query('SELECT album_title, to_char("release_date", \'YYYY-MM-DD\') as release_date FROM album WHERE artist_id = $1', [ id ]);
         return results.rows;
     } catch (err) {
         throw err
     }
-}
+};
 
 exports.selectTracks = async () => {
     try {
@@ -142,7 +134,7 @@ exports.selectTracks = async () => {
     } catch (err) {
         throw err
     }
-}
+};
 
 exports.selectTrackTitle = async () => {
     try {
@@ -151,7 +143,7 @@ exports.selectTrackTitle = async () => {
     } catch (err) {
         throw err
     }
-}
+};
 
 exports.selectNewTracks = async (id) => {
     try {
@@ -160,40 +152,166 @@ exports.selectNewTracks = async (id) => {
     } catch (err) {
         throw err
     }
-}
+};
 
-exports.selectGroupedType = async () => {
-    try {
-        const results = await pool.query('SELECT type, count(type) as value FROM track WHERE type != \'D\' group by type');
-        return results.rows;
-    } catch (err) {
-        throw err
-    }
-}
-
-exports.selectTrackWithReleaseDate = async () => {
-    try {
-        const results = await pool.query('SELECT t.track_title, to_char(a.release_date, \'YYYY\') as release_date FROM track as t, album as a where t.album_id = a.album_id');
-        return results.rows;
-    } catch (err) {
-        throw err
-    }
-}
-
-exports.selectTrackWithMemberComposer = async () => {
+exports.selectGroupedType = async (id) => {
     const sql = `
-    select t.ptp / (t.ptp + t.no_ptp) * 100 as participate_ratio
+        SELECT t.type, count(t.type) as value 
+        FROM track as t, album as a 
+        WHERE t.album_id = a.album_id and a.artist_id = $1 
+        group by t.type
+    `;
+    try {
+        const results = await pool.query(sql, [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+};
+
+exports.selectRatioGroupedType = async (id) => {
+    const sql = `
+        SELECT a.type, a.value / b.total_count * 100 as value
+        FROM (
+            SELECT t.type, CAST(count(t.type) AS DOUBLE PRECISION) as value 
+            FROM track as t, album as a 
+            WHERE t.album_id = a.album_id and a.artist_id = $1
+            group by t.type
+        ) AS A
+        , (
+            SELECT CAST(count(*) AS DOUBLE PRECISION) as total_count
+            FROM track as t, album as a 
+            WHERE t.album_id = a.album_id and a.artist_id = $1
+        ) AS B
+    `;
+    try {
+        const results = await pool.query(sql, [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+};
+
+exports.selectTrackWithReleaseDate = async (id) => {
+    const sql = `
+        SELECT release_date as name, count(release_date) as value
+        FROM (SELECT to_char(a.release_date, 'YYYY') as release_date
+            FROM track as t, album as a 
+            WHERE t.album_id = a.album_id 
+                AND a.artist_id = $1 
+                AND t.type = 'N'
+        ) as T
+        GROUP BY t.release_date
+    `;
+    try {
+        const results = await pool.query(sql, [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+};
+
+exports.selectTrackWithMemberComposer = async (id) => {
+    const sql = `
+    SELECT t.ptp / (t.ptp + t.no_ptp) * 100 as participate_ratio
         , t.no_ptp / (t.ptp + t.no_ptp) * 100 as non_participate_ratio
-    from (select CAST(SUM(CASE WHEN c.track_id IS NOT NULL THEN 1 ELSE 0 END) AS DOUBLE PRECISION) AS ptp
+    FROM (select CAST(SUM(CASE WHEN c.track_id IS NOT NULL THEN 1 ELSE 0 END) AS DOUBLE PRECISION) AS ptp
             , CAST(SUM(CASE WHEN c.track_id IS NULL THEN 1 ELSE 0 END) AS DOUBLE PRECISION) AS no_ptp 
-        from track as t
-            left join (
+        FROM track as t
+            JOIN album as a on t.album_id = a.album_id
+            LEFT JOIN (
                 select track_id 
                 from composer as c 
                 group by track_id
             ) as c on t.track_id = c.track_id
-        WHERE t.type = 'N') as T
-    `
+        WHERE t.type = 'N' AND a.artist_id = $1 ) as T
+    `;
+    try {
+        const results = await pool.query(sql, [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+};
+
+exports.selectTrackWithMemberComposerByArtist = async () => {
+    const sql = `
+    SELECT t1.artist_name as name
+        , t1.ptp / (t1.ptp + t2.no_ptp) * 100 as 참여
+        , t2.no_ptp / (t1.ptp + t2.no_ptp) * 100 as 비참여
+    FROM (
+            SELECT r.artist_name
+                , CAST(COUNT(a.artist_id) AS DOUBLE PRECISION) AS ptp 
+            FROM track as t
+            JOIN album as a on t.album_id = a.album_id
+            JOIN artist as r on r.artist_id = a.artist_id
+            LEFT JOIN (
+                select track_id 
+                from composer as c 
+                group by track_id
+            ) as c on t.track_id = c.track_id
+            WHERE t.type = 'N' AND c.track_id IS NOT NULL
+            GROUP BY r.artist_name 
+        ) AS T1
+        , (
+            SELECT r.artist_name
+                , CAST(COUNT(a.artist_id) AS DOUBLE PRECISION) AS no_ptp 
+            FROM track as t
+            JOIN album as a on t.album_id = a.album_id
+            JOIN artist as r on r.artist_id = a.artist_id
+            LEFT JOIN (
+                select track_id 
+                from composer as c 
+                group by track_id
+            ) as c on t.track_id = c.track_id
+            WHERE t.type = 'N' AND c.track_id IS NULL
+            GROUP BY r.artist_name
+        ) AS T2
+    WHERE T1.artist_name = T2.artist_name
+    `;
+    try {
+        const results = await pool.query(sql);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+};
+
+exports.selectTrackWithMemberWriterByArtist = async () => {
+    const sql = `
+    SELECT t1.artist_name as name
+        , t1.ptp / (t1.ptp + t2.no_ptp) * 100 as 참여
+        , t2.no_ptp / (t1.ptp + t2.no_ptp) * 100 as 비참여
+    FROM (
+            SELECT r.artist_name
+                , CAST(COUNT(a.artist_id) AS DOUBLE PRECISION) AS ptp 
+            FROM track as t
+            JOIN album as a on t.album_id = a.album_id
+            JOIN artist as r on r.artist_id = a.artist_id
+            LEFT JOIN (
+                select track_id 
+                from writer as c 
+                group by track_id
+            ) as c on t.track_id = c.track_id
+            WHERE t.type = 'N' AND c.track_id IS NOT NULL
+            GROUP BY r.artist_name 
+        ) AS T1
+        , (
+            SELECT r.artist_name
+                , CAST(COUNT(a.artist_id) AS DOUBLE PRECISION) AS no_ptp 
+            FROM track as t
+            JOIN album as a on t.album_id = a.album_id
+            JOIN artist as r on r.artist_id = a.artist_id
+            LEFT JOIN (
+                select track_id 
+                from writer as c 
+                group by track_id
+            ) as c on t.track_id = c.track_id
+            WHERE t.type = 'N' AND c.track_id IS NULL
+            GROUP BY r.artist_name
+        ) AS T2
+    WHERE T1.artist_name = T2.artist_name
+    `;
     try {
         const results = await pool.query(sql);
         return results.rows;
@@ -201,29 +319,32 @@ exports.selectTrackWithMemberComposer = async () => {
         throw err
     }
 }
-exports.selectTrackWithMemberWriter = async () => {
+
+exports.selectTrackWithMemberWriter = async (id) => {
     const sql = `
     select t.ptp / (t.ptp + t.no_ptp) * 100 as participate_ratio
         , t.no_ptp / (t.ptp + t.no_ptp) * 100 as non_participate_ratio
     from (select CAST(SUM(CASE WHEN c.track_id IS NOT NULL THEN 1 ELSE 0 END) AS DOUBLE PRECISION) AS ptp
             , CAST(SUM(CASE WHEN c.track_id IS NULL THEN 1 ELSE 0 END) AS DOUBLE PRECISION) AS no_ptp 
         from track as t
+            JOIN album as a on t.album_id = a.album_id
             left join (
                 select track_id 
                 from writer as w
                 group by track_id
             ) as c on t.track_id = c.track_id
-        WHERE t.type = 'N') as T
-    `
+        WHERE t.type = 'N' AND a.artist_id = $1
+        ) as T
+    `;
     try {
-        const results = await pool.query(sql);
+        const results = await pool.query(sql, [ id ]);
         return results.rows;
     } catch (err) {
         throw err
     }
-}
+};
 
-exports.countParticipateByReleaseDate = async () => {
+exports.countParticipateByReleaseDate = async (id) => {
     try {
         const sql = `
         SELECT t.release_date AS date
@@ -243,19 +364,20 @@ exports.countParticipateByReleaseDate = async () => {
                 ) AS p1 
                 GROUP BY p1.track_id
             ) AS p ON t.track_id = p.track_id
-            WHERE t.type = 'N') t
+            WHERE t.type = 'N' AND a.artist_id = $1
+        ) t
         GROUP BY t.release_date
         ORDER BY t.release_date
         `
 
-        const results = await pool.query(sql);
+        const results = await pool.query(sql, [ id ]);
         return results.rows;
     } catch (err) {
         throw err
     }
-}
+};
 
-exports.countParticipateByReleaseDateAndMember = async () => {
+exports.countParticipateByReleaseDateAndMember = async (id) => {
     try {
         const sql = `
         SELECT t.release_date AS date
@@ -278,19 +400,124 @@ exports.countParticipateByReleaseDateAndMember = async () => {
                 GROUP BY p1.track_id, p1.member_id
             ) AS p ON t.track_id = p.track_id
             JOIN member AS m ON p.member_id = m.member_id
-            WHERE t.type = 'N') t
+            WHERE t.type = 'N'
+                AND a.artist_id = $1
+        ) t
         GROUP BY t.release_date, t.member_name
         ORDER BY t.release_date, t.member_name
-        `
+        `;
 
-        const results = await pool.query(sql);
+        const results = await pool.query(sql, [ id ]);
         return results.rows;
     } catch (err) {
         throw err
     }
-}
+};
 
-exports.rateParticipateByMember = async () => {
+exports.ratioParticipateByReleaseDate = async (id) => {
+    try {
+        const sql = `
+        SELECT A.release_date AS date
+            , A.ptp_count / B.total_count * 100 as participate_ratio
+            , (B.total_count - A.ptp_count) / B.total_count * 100 as non_participate_ratio
+        FROM (
+            SELECT T1.release_date
+                , CAST(COUNT(T1.release_date) AS DOUBLE PRECISION) AS ptp_count
+            FROM (
+                SELECT TO_CHAR(a.release_date, 'YYYY') AS release_date 
+                FROM album AS a
+                JOIN track AS t ON a.album_id = t.album_id
+                JOIN (
+                    SELECT p1.track_id
+                    FROM (
+                        SELECT track_id 
+                        FROM writer
+                    UNION
+                        SELECT track_id 
+                        FROM composer
+                    ) AS p1 
+                    GROUP BY p1.track_id
+                ) AS p ON t.track_id = p.track_id
+                WHERE t.type = 'N' AND a.artist_id = $1
+            ) T1
+            GROUP BY T1.release_date
+        ) A
+        JOIN (
+            SELECT T2.release_date
+                , CAST(COUNT(T2.release_date) AS DOUBLE PRECISION) as total_count 
+            FROM (SELECT to_char(a.release_date, 'YYYY') as release_date
+                FROM track as t, album as a 
+                WHERE t.album_id = a.album_id 
+                    AND a.artist_id = $1 
+                    AND t.type = 'N'
+            ) as T2
+            GROUP BY T2.release_date
+        ) B ON A.release_date = B.release_date
+        ORDER BY A.release_date
+        `;
+
+        const results = await pool.query(sql, [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+};
+
+exports.ratioParticipateByReleaseDateAndMember = async (id) => {
+    try {
+        const sql = `
+        SELECT A.release_date AS date
+            , A.member_name AS member
+            , A.ptp_count / B.total_count * 100 as participate_ratio
+            , (B.total_count - A.ptp_count) / B.total_count * 100 as non_participate_ratio
+        FROM (
+            SELECT T1.release_date
+                , T1.member_name
+                , CAST(COUNT(*) AS DOUBLE PRECISION) AS ptp_count
+            FROM (
+                SELECT TO_CHAR(a.release_date, 'YYYY') AS release_date
+                    , m.member_name
+                FROM album AS a
+                JOIN track AS t ON a.album_id = t.album_id
+                JOIN (
+                    SELECT p1.track_id, p1.member_id
+                    FROM (
+                        SELECT * 
+                        FROM writer
+                    UNION
+                        SELECT * 
+                        FROM composer
+                    ) AS p1 
+                    GROUP BY p1.track_id, p1.member_id
+                ) AS p ON t.track_id = p.track_id
+                JOIN member AS m ON p.member_id = m.member_id
+                WHERE t.type = 'N' 
+                    AND a.artist_id = $1
+            ) T1
+            GROUP BY T1.release_date, T1.member_name
+        ) A
+        JOIN (
+            SELECT T2.release_date
+                , CAST(COUNT(T2.release_date) AS DOUBLE PRECISION) as total_count 
+            FROM (SELECT to_char(a.release_date, 'YYYY') as release_date
+                FROM track as t, album as a 
+                WHERE t.album_id = a.album_id 
+                    AND a.artist_id = $1 
+                    AND t.type = 'N'
+            ) as T2
+            GROUP BY T2.release_date
+        ) B ON A.release_date = B.release_date
+        ORDER BY A.release_date, A.member_name
+        `;
+
+        const results = await pool.query(sql, [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+};
+
+exports.rateParticipateByMember = async (id) => {
     try {
         const sql = `
         SELECT t.member_name AS member
@@ -298,6 +525,7 @@ exports.rateParticipateByMember = async () => {
         FROM (
             SELECT m.member_name
             FROM track AS t
+            JOIN album AS a ON a.album_id = t.album_id
             JOIN (
                 SELECT p1.track_id, p1.member_id
                 FROM (
@@ -310,17 +538,19 @@ exports.rateParticipateByMember = async () => {
                 GROUP BY p1.track_id, p1.member_id
             ) AS p ON t.track_id = p.track_id
             JOIN member AS m ON p.member_id = m.member_id
-            WHERE t.type = 'N') t
+            WHERE t.type = 'N'
+                AND a.artist_id = $1
+        ) t
         GROUP BY t.member_name
         ORDER BY t.member_name
-        `
+        `;
 
-        const results = await pool.query(sql);
+        const results = await pool.query(sql, [ id ]);
         return results.rows;
     } catch (err) {
         throw err
     }
-}
+};
 
 exports.selectKeywords = async () => {
     try {
@@ -348,7 +578,41 @@ exports.selectKeywords = async () => {
     }
 }
 
-exports.selectTop10Keywords = async () => {
+exports.selectKeywordsWithFiltered = async (id) => {
+    try {
+        const sql = `
+        SELECT lyric_word AS data 
+            , count(*) AS value 
+        FROM lyric_morpheme 
+        WHERE (
+                type IN ('NNP', 'NNG', 'SN')
+                OR (type IN ('XR', 'SL') AND LENGTH(lyric_word) >= 2)
+                OR (type IN ('VA') AND LENGTH(lyric_word) >= 3)
+            )
+            AND (LENGTH(lyric_word) >= 2 OR LENGTH(lyric_word) = 1
+            AND lyric_word IN ('말','꿈','날','눈','랩','끝','숨','밤','빛','앞','뷔','형'
+            ,'삶','겁','흥','춤','꽃','별','땀','법','밖','힘','널','죄','욕','총','정'
+            ,'밥','칼','낮','금','숲','봄','팬','쫌','빵','핳','헤','글','ㅋ','ㅇ','슛'
+            ,'꿀','뜻','몫','벽','볕','빚','술','힣','짝','짱','넌', '길', '맘', '끝', '숨', '일'
+            , '곁', '옆', '집', '뒤', '품', '달', '불', '잠', '문', '키', '입', '힘', '비', '밖', '남'
+            , '피', '몸', '남', '춤', '발', '방', '품', '별', '코'
+            , '뭐', '뭣', '왜', '쉿'
+            , '니', '내', '나', '너')
+            ) 
+            AND lyric_word !~ '[一-龠]+|[ぁ-ゔ]+|[ァ-ヴー]+|[a-zA-Z0-9]+|[ａ-ｚＡ-Ｚ０-９]+[々〆〤]+/u'
+            AND lyric_word NOT IN ('랩몬스터', '제이홉', '정호석', '지민', '슈가', '민윤기', '정국', '석진', '뷔', '김남준', '남준', '태형', '호석', '윤기')
+            AND artist_id = $1
+        GROUP BY lyric_word
+        ORDER BY value DESC
+        `
+        const results = await pool.query(sql, [ id ]);
+        return results.rows;
+    } catch (err) {
+        throw err
+    }
+}
+
+exports.selectTopNKeywords = async (id, count) => {
     try {
         const sql = `
         SELECT T.word AS data
@@ -357,6 +621,8 @@ exports.selectTop10Keywords = async () => {
             SELECT LOWER(l.lyric_word) AS word
                 , l.type
             FROM lyric_morpheme as l
+            JOIN track as t ON l.track_id = t.track_id
+            JOIN album as a ON t.album_id = a.album_id
             WHERE 
                 (
                     l.type IN ('NNP', 'NNG', 'SN')
@@ -364,20 +630,23 @@ exports.selectTop10Keywords = async () => {
                         OR (l.type IN ('VA') AND LENGTH(lyric_word) >= 3)
                 )
                 AND (LENGTH(l.lyric_word) >= 2 OR LENGTH(l.lyric_word) = 1
-                    AND l.lyric_word IN ('말','꿈','날','눈','랩','끝','숨','밤','빛','앞','뷔','형'
-                    ,'삶','겁','흥','춤','꽃','별','땀','법','밖','힘','널','죄','욕','총','정'
-                    ,'밥','칼','낮','금','숲','봄','팬','쫌','빵','핳','헤','글','ㅋ','ㅇ','슛'
-                    ,'꿀','뜻','몫','벽','볕','빚','술','힣','짝','짱','넌'
-                    , '뭐', '뭣', '왜', '쉿'
-                    , '니', '내', '나', '너')
-                    )
+                AND l.lyric_word IN ('말','꿈','날','눈','랩','끝','숨','밤','빛','앞','뷔','형'
+                ,'삶','겁','흥','춤','꽃','별','땀','법','밖','힘','널','죄','욕','총','정'
+                ,'밥','칼','낮','금','숲','봄','팬','쫌','빵','핳','헤','글','ㅋ','ㅇ','슛'
+                ,'꿀','뜻','몫','벽','볕','빚','술','힣','짝','짱','넌', '길', '맘', '끝', '숨', '일'
+                , '곁', '옆', '집', '뒤', '품', '달', '불', '잠', '문', '키', '입', '힘', '비', '밖', '남'
+                , '피', '몸', '남', '춤', '발', '방', '품', '별', '코'
+                , '뭐', '뭣', '왜', '쉿'
+                , '니', '내', '나', '너')
+                ) 
                 AND l.lyric_word !~ '[一-龠]+|[ぁ-ゔ]+|[ァ-ヴー]+|[a-zA-Z0-9]+|[ａ-ｚＡ-Ｚ０-９]+[々〆〤]+/u'
+                AND a.artist_id = $1
         ) AS T
         GROUP BY T.word
         ORDER BY T.count DESC
-        LIMIT 10
+        LIMIT $2 
         `
-        const results = await pool.query(sql);
+        const results = await pool.query(sql, [ id, count ]);
         return results.rows;
     } catch (err) {
         throw err
@@ -425,10 +694,12 @@ exports.selectKeywordsByReleaseDate = async () => {
                     AND l.lyric_word IN ('말','꿈','날','눈','랩','끝','숨','밤','빛','앞','뷔','형'
                     ,'삶','겁','흥','춤','꽃','별','땀','법','밖','힘','널','죄','욕','총','정'
                     ,'밥','칼','낮','금','숲','봄','팬','쫌','빵','핳','헤','글','ㅋ','ㅇ','슛'
-                    ,'꿀','뜻','몫','벽','볕','빚','술','힣','짝','짱','넌'
+                    ,'꿀','뜻','몫','벽','볕','빚','술','힣','짝','짱','넌', '길', '맘', '끝', '숨', '일'
+                    , '곁', '옆', '집', '뒤', '품', '달', '불', '잠', '문', '키', '입', '힘', '비', '밖', '남'
+                    , '피', '몸', '남', '춤', '발', '방', '품', '별', '코'
                     , '뭐', '뭣', '왜', '쉿'
-                    , '니', '내')
-                    )
+                    , '니', '내', '나', '너')
+                )
                 AND l.lyric_word NOT IN ('랩몬스터', '제이홉', '정호석', '지민', '슈가', '민윤기', '정국', '석진', '뷔', '김남준', '남준', '태형', '호석', '윤기')
                 AND l.lyric_word !~ '[一-龠]+|[ぁ-ゔ]+|[ァ-ヴー]+|[a-zA-Z0-9]+|[ａ-ｚＡ-Ｚ０-９]+[々〆〤]+/u'
         ) AS T

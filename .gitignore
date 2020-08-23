@@ -6,3 +6,4 @@ package-lock.json
 oauth2.keys.json
 *.json
 *.csv
+.idea

@@ -94,3 +94,24 @@ exports.getEXOMembers = () => {
         }
     ];
 }
+
+exports.getWINNERMembers = () => {
+    return [
+        {
+            memberId: 143194,
+            memberName: '강승윤'
+        },
+        {
+            memberId: 165416,
+            memberName: 'MINO (송민호)'
+        },
+        {
+            memberId: 214211,
+            memberName: '이승훈'
+        },
+        {
+            memberId: null,
+            memberName: '김진우'
+        }
+    ];
+}

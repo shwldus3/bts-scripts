@@ -1,58 +1,64 @@
 'use strict';
 
 const fs = require('fs');
-const _ = require('lodash');
-const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-
 const query = require('./query');
-const preprocessing = require('./preprocessing');
+const util = require('./util');
 
-const albumList = async () => {
-    const data = await query.selectAlbums();
-    console.log(data);
+const albumList = async (id) => {
+    return await query.selectAlbumsReleaseDate(id);
 };
 
-const filterNewTrack = (tracks) => {
-    return preprocessing.groupedTrackByType(tracks).filter(t => t.name === '신곡')[0].value
-};
-
-const groupedTrack = async () => {
-    const groupedTrack = await query.selectGroupedType();
+const groupedTrack = async (artistId) => {
+    const groupedTrack = await query.selectGroupedType(artistId);
     return groupedTrack.map(t => {
-        if (t.type === 'N') {
-            t.name = '신곡';
-        } else if (t.type === 'E') {
-            t.name = '풀 버전';
-        } else if (t.type === 'F') {
-            t.name = '피쳐링';
-        } else if (t.type === 'J') {
-            t.name = '일본 버전';
-        } else if (t.type === 'M') {
-            t.name = '리믹스';
-        }
+        t.name = util.classifyType(t.type);
+        return t;
     })
 };
 
-const groupedTracksByYear = async () => {
-    const tracks = await query.selectTrackWithReleaseDate();
-    const newTracks = preprocessing.groupedTrackByType(tracks).filter(t => t.name === '신곡')[0].value;
+const groupedTrackByArtist = async () => {
+    const exoData = (await query.selectGroupedType(272211)).map(t => {
+        t.name = util.classifyType(t.type);
+        return t;
+    })
+    const got7Data = (await query.selectGroupedType(314487)).map(t => {
+        t.name = util.classifyType(t.type);
+        return t;
+    })
+    const btsData = (await query.selectGroupedType(143179)).map(t => {
+        t.name = util.classifyType(t.type);
+        return t;
+    })
 
-    const groupedByReleaseDate = _.countBy(newTracks, 'release_date');
-    const result = [];
-    for (const key in groupedByReleaseDate) {
-        if (groupedByReleaseDate.hasOwnProperty(key)) {
-            const value = groupedByReleaseDate[key];
-            result.push({
-                date: key,
-                value
-            })
-        }
+    return {
+        name: 'data',
+        children: [{
+            name: 'EXO',
+            children: exoData
+        }, {
+            name: 'GOT7',
+            children: got7Data
+        }, {
+            name: 'BTS',
+            children: btsData
+        }]
     }
-    return result;
 };
 
-const participateCompositionRatio = async () => {
-    const results = await query.selectTrackWithMemberComposer();
+const groupedTrackRatio = async (artistId) => {
+    const groupedTrack = await query.selectRatioGroupedType(artistId);
+    return groupedTrack.map(t => {
+        t.name = util.classifyType(t.type);
+        return t;
+    })
+};
+
+const groupedTracksByYear = async (artistId) => {
+    return await query.selectTrackWithReleaseDate(artistId);
+};
+
+const participateCompositionRatio = async (artistId) => {
+    const results = await query.selectTrackWithMemberComposer(artistId);
     const tracksWithMember = results[0];
     return [{
         name: '멤버 작곡 참여 비율',
@@ -63,8 +69,16 @@ const participateCompositionRatio = async () => {
     }]
 };
 
-const participateWriterRatio = async () => {
-    const results = await query.selectTrackWithMemberWriter();
+const participateCompositionRatioByArtist = async () => {
+    return await query.selectTrackWithMemberComposerByArtist();
+};
+
+const participateWriterRatioByArtist = async () => {
+    return await query.selectTrackWithMemberWriterByArtist();
+};
+
+const participateWriterRatio = async (artistId) => {
+    const results = await query.selectTrackWithMemberWriter(artistId);
     const tracksWithMember = results[0];
     return [{
         name: '멤버 작사 참여 비율',
@@ -75,29 +89,105 @@ const participateWriterRatio = async () => {
     }]
 };
 
-const groupedParticipateByReleaseDate = async () => {
-    const results = await query.countParticipateByReleaseDate();
-    return results;
+const groupedParticipateByArtistReleaseDate = async () => {
+    const exoData = await query.countParticipateByReleaseDate(272211)
+    const got7Data = await query.countParticipateByReleaseDate(314487)
+    const btsData = await query.countParticipateByReleaseDate(143179)
+
+    const result = [];
+    btsData.forEach(b => {
+        const exo = exoData.find(e => e.date === b.date);
+        const got7 = got7Data.find(g => g.date === b.date);
+
+        result.push({
+            date: b.date, 
+            BTS: b.value, 
+            EXO: !!exo ? exo.value : "0",
+            GOT7: !!got7 ? got7.value : "0",
+        })
+    })
+    return result;
 };
 
-const groupedParticipateByReleaseDateAndMember = async () => {
-    const results = await query.countParticipateByReleaseDateAndMember();
-    return results;
+const groupedParticipateByReleaseDate = async (artistId) => {
+    return await query.countParticipateByReleaseDate(artistId);
 };
 
-const groupedParticipateByMember = async () => {
-    const results = await query.rateParticipateByMember();
-    return results;
+const groupedParticipateByReleaseDateAndMember = async (artistId) => {
+    return await query.countParticipateByReleaseDateAndMember(artistId);
 };
 
-const getTop10Keywords = async () => {
-    const data = await query.selectTop10Keywords();
+const groupedParticipateRatioByReleaseDate = async (artistId) => {
+    return await query.ratioParticipateByReleaseDate(artistId);
+};
+
+const groupedParticipateRatioByReleaseDateAndMember = async (artistId) => {
+    return await query.ratioParticipateByReleaseDateAndMember(artistId);
+};
+
+const groupedParticipateRaioByMember = async (artistId) => {
+    return await query.rateParticipateByMember(artistId);
+};
+
+const getTop10Keywords = async (artistId) => {
+    const data = await query.selectTopNKeywords(artistId, 10);
     return data.map((d, idx) => {
         d.id = idx + 1;
         d.value = Number.parseInt(d.value);
         return d;
     });
 };
+
+const getTop50KeywordsByArtist = async () => {
+    const exoKeywords = await query.selectTopNKeywords(272211,50); 
+    const btsKeywords = await query.selectTopNKeywords(143179,50);
+    const got7Keywords = await query.selectTopNKeywords(314487,50);
+
+    const result = [];
+    btsKeywords.forEach(k => {
+        result.push({
+            id: `키워드.BTS.${k.data}`,
+            value: k.value
+        });
+    })
+    exoKeywords.forEach(k => {
+        result.push({
+            id: `키워드.EXO.${k.data}`,
+            value: k.value
+        });
+    });
+    got7Keywords.forEach(k => {
+        result.push({
+            id: `키워드.GOT7.${k.data}`,
+            value: k.value
+        });
+    });
+
+    return result;
+}
+
+const getOnlyBTSKeywords = async () => {
+    const exoKeywords = await query.selectKeywordsWithFiltered(272211); 
+    const btsKeywords = await query.selectKeywordsWithFiltered(143179);
+    const got7Keywords = await query.selectKeywordsWithFiltered(314487);
+
+    const onlyBTS = [];
+    btsKeywords.forEach(k => {
+        if (!!exoKeywords.find(e => e.data === k.data)) {
+            return;
+        }
+        if (!!got7Keywords.find(g => g.data === k.data)) {
+            return;
+        }
+        const obj = {
+            word: k.data,
+            category: 1,
+            weight: k.value
+        };
+        onlyBTS.push(obj);
+    })
+    return onlyBTS;
+}
 
 const getKeywordsByReleaseDate = async () => {
     const data = await query.selectKeywordsByReleaseDate();
@@ -159,40 +249,46 @@ const getKeywords = async () => {
     return str;
 };
 
-const writeCsv = async (data, keys, csvFileName) => {
-    try {
-        const header = [];
-        keys.map(key => {
-            header.push({
-                id: key, title: key
-            })
-        });
-        const csvWriter = createCsvWriter({
-            path: `vibe/csv/${csvFileName}.csv`,
-            header
-        });
-        await csvWriter.writeRecords(data);
-    } catch (err) {
-        throw new Error(err);
-    }
-};
-
-const writeFile = (data, fileName) => {
-    const filePath = `${__dirname}/${fileName}`;
-
-    try {
-        fs.writeFileSync(filePath, data);
-    } catch (err) {
-        throw err;
-    }
-};
 
 const _runTest = async () => {
     try {
-        const data = await getKeywordsByReleaseDate();
+        // const key = 'exo';
+        // const artistId = 272211;
+
+        // const key = 'got7';
+        // const artistId = 314487;
+
+        const key = 'bts';
+        const artistId = 143179; 
+
+        // const data = await albumList(artistId); // 총 앨범 리스트
+        // const data = await groupedTrack(artistId); // 곡 분류 별 개수
+        // const data = await groupedTracksByYear(artistId); // 년도 별 신규 곡 개수 추이
+        
+        // const data = await participateCompositionRatio(artistId); // 작곡 참여 비중 (멤버 구분 없이)
+        // const data = await participateWriterRatio(artistId); // 작사 참여 비중 (멤버 구분 없이)
+        // const data = await groupedParticipateByReleaseDate(artistId); // 년도 별 작곡/작사 참여 횟수
+        // const data = await groupedParticipateByReleaseDateAndMember(artistId); // 년도 & 멤버 별 작곡/작사 참여 횟수
+
+        // const data = await groupedTrackByArtist(); // 아티스트 별 곡 분류 별 개수        
+        // const data = await participateCompositionRatioByArtist(); // 아티스트 별 작곡 참여도
+        // const data = await participateWriterRatioByArtist(); // 아티스트 별 작사 참여도
+        // const data = await groupedParticipateByArtistReleaseDate(); // 아티스트 별 년도 별 작곡/작사 참여 횟수
+
+        // const data = await getTop10Keywords(artistId); // 키워드 Top 10
+        // const data = await getKeywords(); // 키워드 추출
+        // const data = await getKeywordsByReleaseDate(); // 앨범 발매일 별 키워드 추출 (= 앨범 별)
+
+        // const data = await getTop50KeywordsByArtist();// 아티스트 별 키워드 상위 50 키워드 추출
+
+        const data = await getOnlyBTSKeywords();// EXO, GOT7와 중복된 키워드를 제외한 BTS only 키워드 추출
+
         // console.log(data);
-        writeCsv(data, ['date', 'name', 'value', 'category'], 'getKeywordsByReleaseDate')
-        // writeFile(data, 'keywords');
+        console.log(data.length);
+        await util.writeCsv(data, ['word', 'category', 'weight'], 'getOnlyBTSKeywords', key);
+        // util.writeFile(JSON.stringify(data), key, 'getOnlyBTSKeywords.json');
+
+        console.log('완료');
     } catch (err) {
         console.error(err);
     }

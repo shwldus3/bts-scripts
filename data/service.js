@@ -17,7 +17,32 @@ const getTracksRawData = async (id, artist, count) => {
     }
 };
 
-const updateAlbumReleaseDate = exports.updateAlbum = async (id) => {
+const updateNewAlbum = async (artistId, albumId, members) => {
+    try {
+        const album = await vibeRequest.getAlbumDetail(albumId);
+        await query.insertAlbum(Object.assign({artist_id: artistId}, album));
+        await query.updateReleaseDate(album);
+
+        const tracks = (await vibeRequest.getAlbumTracks(albumId)).response.result.tracks;
+        await runWithErrorCheck(tracks, query.insertTrack, {albumId: albumId, type: 'N'});
+
+        const trackDetails = [];
+        for (const t of tracks) {
+            const track = await vibeRequest.getTrackDetail(t.trackId);
+            await query.updatelyric(track);
+            trackDetails.push(track);
+        }
+
+        const writers = preprocessing.getWriters(trackDetails, members)
+        const composers = preprocessing.getComposers(trackDetails, members)
+        await runWithErrorCheck(writers, query.insertWriter)
+        await runWithErrorCheck(composers, query.insertComposer)
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+const updateAlbumReleaseDate = async (id) => {
     const albums = await query.selectAlbumsByArtistId(id);
     const errResult = [];
     for (const d of albums) {
@@ -64,11 +89,12 @@ const runWithErrorCheck = async (targets, runFunc, additionalData) => {
     for (const d of targets) {
         let data = d;
         if (!!additionalData) {
-            data = Object.assign(data, additionalData);
+            data = Object.assign({}, data, additionalData);
         }
         try {
             await runFunc(data);
         } catch (err) {
+            console.log(err);
             errResult.push({
                 data,
                 err
@@ -91,26 +117,27 @@ const getTrackDetails = exports.getTrackDetails = (artist) => {
 
 const albumTrackService = async (id, artist) => {
     const tracks = preprocessing.transformTracks(artist);
+    console.log(`${tracks.length} 곡과 앨범 정보를 저장합니다.`)
     
     const groupedAlbums = preprocessing.groupedByAlbum(tracks);
     const albums = Object.values(groupedAlbums).map(a => { a.artist_id = id; return a;});
-    runWithErrorCheck(albums, query.insertAlbum);
+    
+    await runWithErrorCheck(albums, query.insertAlbum);
 
     const groupedTracks = preprocessing.groupedTrackByType(tracks);
+
     const trackInfos = groupedTracks.reduce((prev, cur) => {
         prev = prev.concat(cur.value);
         return prev;
     }, []);
-    runWithErrorCheck(trackInfos, query.insertTrack);
+    await runWithErrorCheck(trackInfos, query.insertTrack);
     
-    await updateAlbumReleaseDate(artistId);
-    await updateTrackLyric(artistId, artist)
-
-    console.log('완료');
+    await updateAlbumReleaseDate(id);
+    await updateTrackLyric(id, artist)
 }
 
 const composerWriterService = async (artistId, artist, members) => {
-    await runWithErrorCheck(members, query.insertMember, { artistId: artistId });
+    // await runWithErrorCheck(members, query.insertMember, { artistId: artistId });
     const trackDetails = getTrackDetails(artist);
     const writers = preprocessing.getWriters(trackDetails, members)
     const composers = preprocessing.getComposers(trackDetails, members)
@@ -119,57 +146,60 @@ const composerWriterService = async (artistId, artist, members) => {
 }
 
 const btsService = async () => {
-    const artist = 'bts'
+    const artist = 'bts';
     const artistId = 143179;
-    const count = 300
+    const count = 300;
 
     try {
-        getTracksRawData(artistId, artist, count);
-        albumTrackService(artistId, artist, count);
+        await getTracksRawData(artistId, artist, count);
+        await albumTrackService(artistId, artist, count);
         const members = constant.getBTSMembers();
-        composerWriterService(artistId, artist, members);
+        await composerWriterService(artistId, artist, members);
     } catch (err) {
         throw err;
     }
 }
 
 const exoService = async () => {
-    const artist = 'exo'
+    const artist = 'exo';
     const artistId = 272211;
-    const count = 500
+    const count = 500;
 
     try {
         await getTracksRawData(artistId, artist, count);
-        albumTrackService(artistId, artist, count);
+        await albumTrackService(artistId, artist, count);
         const members = constant.getEXOMembers();
-        composerWriterService(artistId, artist, members);
+        await composerWriterService(artistId, artist, members);
     } catch (err) {
         throw err;
     }
 }
 
 const got7Service = async () => {
-    const artist = 'got7'
+    const artist = 'got7';
     const artistId = 314487;
-    const count = 200
+    const count = 200;
 
     try {
-        await getTracksRawData(artistId, artist, count);
-        albumTrackService(artistId, artist, count);
+        // await getTracksRawData(artistId, artist, count);
+        await albumTrackService(artistId, artist, count);
         const members = constant.getGOT7Members();
-        composerWriterService(artistId, artist, members);
+        await composerWriterService(artistId, artist, members);
     } catch (err) {
         throw err;
     }
 }
 
-const _runTest = () => {
+const _runTest = async () => {
     try {
         // btsService();
 
         // exoService();
 
-        // got7Service();
+        got7Service();
+
+        // await updateNewAlbum(143179, 4820425, constant.getBTSMembers());
+        console.log('완료')
 
     } catch (err) {
         console.error(err);

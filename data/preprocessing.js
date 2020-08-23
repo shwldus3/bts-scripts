@@ -1,17 +1,40 @@
 'use strict';
 
+const fs = require('fs');
+
+const transformTracks = exports.transformTracks = (artist) => {
+    const json = fs.readFileSync(`${__dirname}/json/${artist}/tracks.json`, 'utf-8');
+    const data = JSON.parse(json).response.result.tracks;
+    const tracks = data.map(t => { 
+        return { 
+            trackId: t.trackId, 
+            trackTitle: t.trackTitle, 
+            albumId: t.album.albumId, 
+            albumTitle: t.album.albumTitle 
+        }; 
+    });
+    return tracks;
+}
+
 const filterDupTitle = (tracks) => {
-    return tracks.reduce((prev, cur) => {
+    const dupTracks = [];
+    const notDupTracks = tracks.reduce((prev, cur) => {
         const isFiltered = prev.find(t => {
             return t.trackTitle === cur.trackTitle
         });
         if (!!isFiltered) {
+            dupTracks.push(cur);
             return prev;
         } else {
             prev.push(cur);
             return prev;
         }
     }, []);
+
+    return {
+        dupTracks,
+        notDupTracks
+    }
 };
 
 /*
@@ -21,7 +44,7 @@ const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
     if (!tracks) {
         return;
     }
-    const filteredTracks = filterDupTitle(tracks);
+    const filteredTracks = filterDupTitle(tracks).notDupTracks;
 
     const otherVerTracks = filteredTracks.filter(t => {
         const title = t.trackTitle;
@@ -100,7 +123,7 @@ const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
 
     return [
         {
-            name: '다른 버전(외국어, 어쿠스틱 등)',
+            name: '다른 버전',
             value: otherVerTracks.map(t => { t.type = 'J'; return t; })
         },
         {
@@ -119,6 +142,10 @@ const groupedTrackByType = exports.groupedTrackByType = (tracks) => {
             name: '신곡',
             value: newTracks.map(t => { t.type = 'N'; return t; })
         },
+        {
+            name: '중복',
+            value: filterDupTitle(tracks).dupTracks
+        }
     ]
 };
 
@@ -166,7 +193,7 @@ const getComposers = exports.getComposers = (data, members) => {
     data.forEach(d => {
         const dComposers = d.composers;
         dComposers.forEach(dc => {
-            const member = members.filter(m => m.memberId = dc.composerId);
+            const member = members.filter(m => m.memberId === dc.composerId);
             if (!member.length) {
                 return;
             }

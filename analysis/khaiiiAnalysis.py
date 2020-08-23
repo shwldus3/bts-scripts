@@ -19,9 +19,9 @@ def getTrackLyrics(id):
     cur.close()
     return results
 
-def saveLyricMorphs(word, type, track_id):
+def saveLyricMorphs(word, type, track_id, artist_id):
     cur = conn.cursor()
-    cur.execute("INSERT INTO lyric_morpheme (lyric_word, type, track_id) VALUES(%s, %s, %s)", (word, type, track_id))
+    cur.execute("INSERT INTO lyric_morpheme (lyric_word, type, track_id, artist_id) VALUES(%s, %s, %s, %s)", (word, type, track_id, artist_id))
     conn.commit()
     cur.close()
 
@@ -41,12 +41,13 @@ def transformSentence(sentence):
     return result
 
 def _runWordAnalysis():
-    trackLyrics = getTrackLyrics(272211)
+    artistId = 314487
+    trackLyrics = getTrackLyrics(artistId)
     print(str(len(trackLyrics)) + ' 가사 형태소 분석 및 저장 시작')
     for el in trackLyrics:
         morphs = analyzeSentence(el[1])
         for m in morphs:
-            saveLyricMorphs(m[0], m[1], el[0])
+            saveLyricMorphs(m[0], m[1], el[0], artistId)
 
     print('완료')
 
