@@ -1,10 +1,10 @@
 'use strict';
 
 const fs = require('fs');
-const query = require('./query');
-const preprocessing = require('./preprocessing');
-const vibeRequest = require('../http/vibeRequest');
 const constant = require('./constant');
+const vibeRequest = require('../http/vibeRequest');
+const preprocessing = require('./preprocessing');
+const query = require('./query');
 
 const getTracksRawData = async (id, artist, count) => {
     const data = await vibeRequest.getTracks(id, count);
@@ -137,27 +137,12 @@ const albumTrackService = async (id, artist) => {
 }
 
 const composerWriterService = async (artistId, artist, members) => {
-    // await runWithErrorCheck(members, query.insertMember, { artistId: artistId });
+    await runWithErrorCheck(members, query.insertMember, { artistId: artistId });
     const trackDetails = getTrackDetails(artist);
     const writers = preprocessing.getWriters(trackDetails, members)
     const composers = preprocessing.getComposers(trackDetails, members)
     await runWithErrorCheck(writers, query.insertWriter)
     await runWithErrorCheck(composers, query.insertComposer)
-}
-
-const btsService = async () => {
-    const artist = 'bts';
-    const artistId = 143179;
-    const count = 300;
-
-    try {
-        await getTracksRawData(artistId, artist, count);
-        await albumTrackService(artistId, artist, count);
-        const members = constant.getBTSMembers();
-        await composerWriterService(artistId, artist, members);
-    } catch (err) {
-        throw err;
-    }
 }
 
 const exoService = async () => {
@@ -181,7 +166,7 @@ const got7Service = async () => {
     const count = 200;
 
     try {
-        // await getTracksRawData(artistId, artist, count);
+        await getTracksRawData(artistId, artist, count);
         await albumTrackService(artistId, artist, count);
         const members = constant.getGOT7Members();
         await composerWriterService(artistId, artist, members);
@@ -190,15 +175,31 @@ const got7Service = async () => {
     }
 }
 
-const _runTest = async () => {
-    try {
-        // btsService();
+const btsService = async () => {
+    const artist = 'bts';
+    const artistId = 143179;
+    const count = 300;
 
-        // exoService();
+    try {
+        await getTracksRawData(artistId, artist, count);
+        await albumTrackService(artistId, artist, count);
+        const members = constant.getBTSMembers();
+        await composerWriterService(artistId, artist, members);
+    } catch (err) {
+        throw err;
+    }
+}
+
+const _run = async () => {
+    try {
+        btsService();
+
+        exoService();
 
         got7Service();
 
-        // await updateNewAlbum(143179, 4820425, constant.getBTSMembers());
+        await updateNewAlbum(143179, 4820425, constant.getBTSMembers());
+
         console.log('완료')
 
     } catch (err) {
@@ -206,4 +207,4 @@ const _runTest = async () => {
     }
 }
 
-_runTest();
+_run();
