@@ -250,7 +250,7 @@ const getKeywords = async () => {
 };
 
 
-const _runTest = async () => {
+const _run = async () => {
     try {
         // const key = 'exo';
         // const artistId = 272211;
@@ -261,31 +261,28 @@ const _runTest = async () => {
         const key = 'bts';
         const artistId = 143179; 
 
-        // const data = await albumList(artistId); // 총 앨범 리스트
-        // const data = await groupedTrack(artistId); // 곡 분류 별 개수
-        // const data = await groupedTracksByYear(artistId); // 년도 별 신규 곡 개수 추이
+        const data = await albumList(artistId); // 그동안 발매한 BTS 앨범 리스트
+        const data = await groupedTrack(artistId); // BTS 곡 분류 별 개수
+        const data = await groupedTracksByYear(artistId); // BTS 앨범 발매일 별 신곡 개수
         
-        // const data = await participateCompositionRatio(artistId); // 작곡 참여 비중 (멤버 구분 없이)
-        // const data = await participateWriterRatio(artistId); // 작사 참여 비중 (멤버 구분 없이)
-        // const data = await groupedParticipateByReleaseDate(artistId); // 년도 별 작곡/작사 참여 횟수
-        // const data = await groupedParticipateByReleaseDateAndMember(artistId); // 년도 & 멤버 별 작곡/작사 참여 횟수
+        const data = await participateCompositionRatio(artistId); // BTS 작곡 참여도
+        const data = await participateWriterRatio(artistId); // BTS 작사 참여도
+        const data = await groupedParticipateByReleaseDate(artistId); // 기간(년) 별 BTS 작곡/작사 참여 곡 개수
+        const data = await groupedParticipateByReleaseDateAndMember(artistId); // 기간(년) 별 BTS 멤버 각각의 작곡/작사 참여 곡 개수
 
-        // const data = await groupedTrackByArtist(); // 아티스트 별 곡 분류 별 개수        
-        // const data = await participateCompositionRatioByArtist(); // 아티스트 별 작곡 참여도
-        // const data = await participateWriterRatioByArtist(); // 아티스트 별 작사 참여도
-        // const data = await groupedParticipateByArtistReleaseDate(); // 아티스트 별 년도 별 작곡/작사 참여 횟수
+        const data = await groupedTrackByArtist(); // 아티스트 별 곡 분류 별 개수
+        const data = await participateCompositionRatioByArtist(); // 아티스트 별 작곡 참여도
+        const data = await participateWriterRatioByArtist(); // 아티스트 별 작사 참여도
+        const data = await groupedParticipateByArtistReleaseDate(); // 아티스트 별 기간(년) 별 BTS 작곡/작사 참여 곡 개수
 
-        // const data = await getTop10Keywords(artistId); // 키워드 Top 10
-        // const data = await getKeywords(); // 키워드 추출
-        // const data = await getKeywordsByReleaseDate(); // 앨범 발매일 별 키워드 추출 (= 앨범 별)
+        const data = await getTop10Keywords(artistId); // 키워드 Top 10
+        const data = await getKeywords(); // 아티스트 별 키워드 추출
+        const data = await getKeywordsByReleaseDate(); // BTS 앨범 발매일 별 가사 키워드
+        const data = await getTop50KeywordsByArtist();// 아티스트 별 가사 키워드 빈도수 Top50 
+        const data = await getOnlyBTSKeywords();// BTS only 가사 키워드 (EXO, GOT7 중복 키워드 제거)
 
-        // const data = await getTop50KeywordsByArtist();// 아티스트 별 키워드 상위 50 키워드 추출
+        // await util.writeCsv(data, ['word', 'category', 'weight'], 'getOnlyBTSKeywords', key);
 
-        const data = await getOnlyBTSKeywords();// EXO, GOT7와 중복된 키워드를 제외한 BTS only 키워드 추출
-
-        // console.log(data);
-        console.log(data.length);
-        await util.writeCsv(data, ['word', 'category', 'weight'], 'getOnlyBTSKeywords', key);
         // util.writeFile(JSON.stringify(data), key, 'getOnlyBTSKeywords.json');
 
         console.log('완료');
@@ -294,4 +291,4 @@ const _runTest = async () => {
     }
 };
 
-_runTest();
+_run();
